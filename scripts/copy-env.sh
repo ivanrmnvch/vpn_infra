@@ -1,2 +1,2 @@
 #!/bin/sh
-cp ../.env.example .env
+cp ./.env.example .env
