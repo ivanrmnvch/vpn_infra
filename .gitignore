@@ -1,3 +1,9 @@
 .idea
 
 .env
+
+# Logs
+logs
+
+# Config
+config

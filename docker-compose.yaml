@@ -1,20 +1,67 @@
-version: '3.9'
-
 services:
+  postgres0:
+    image: postgres:latest
+    container_name: postgres
+    profiles: ['dev']
+    restart: always
+    volumes:
+      - /var/lib/docker/volumes/postgresql:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    env_file:
+      ./containers/postgres/.env.local
+    expose:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka0:
+    image: 'bitnami/kafka:latest'
+    hostname: kafka0
+    container_name: kafka0
+    profiles: ['dev']
+    env_file:
+      - ./containers/kafka/.env.local
+    volumes:
+      - /var/lib/docker/volumes/kafka:/bitnami/kafka
+    ports:
+      - '9092:9092'
+      - '9093:9093'
+    expose:
+      - "9092"
+    healthcheck:
+      test: kafka-cluster.sh cluster-id --bootstrap-server localhost:9092 || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    profiles: ['dev']
+    depends_on:
+      kafka0:
+        condition: service_healthy
+    env_file:
+      - ./containers/kafka-ui/.env.local
+    ports:
+      - '8083:8080'
+
   redis:
     image: redis:latest
-    container_name: redis_container
+    container_name: redis
+    profiles: ['dev']
     env_file:
-      - .env
-#    environment:
-#      - REDIS_PASSWORD=${REDIS_PASSWORD}
-#      - REDIS_USER=${REDIS_USER}
-#      - REDIS_USER_PASSWORD=${REDIS_USER_PASSWORD}
+      - ./containers/redis/.env.local
     ports:
       - "6380:6379"
     volumes:
-      - ./redisdata:/data
+      - /var/lib/docker/volumes/redisdata:/data
     deploy:
+      # todo оптимизировать
       resources:
         limits:
           cpus: '0.50'
@@ -42,3 +89,72 @@ services:
     restart: unless-stopped
     tty: true
     stdin_open: true
+
+  api-gateway:
+# todo добавить healthcheck
+    build:
+      context: .
+      dockerfile: containers/api-gateway/Dockerfile
+    image: api-gateway:latest
+    container_name: api-gateway
+    profiles: ['dev']
+    depends_on:
+      kafka0:
+        condition: service_healthy
+      postgres0:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8082:8082"
+    env_file:
+      - ./containers/api-gateway/.env.local
+    # command: npm run dev
+    expose:
+      - "8082"
+  # todo test
+    develop:
+      watch:
+        - path: ./repositories/api-gateway/package.json
+          action: rebuild
+        - path: ./repositories/api-gateway/src
+          target: /api-gateway/src
+          action: sync
+
+  xray-vpn:
+    build:
+      context: .
+      dockerfile: ./containers/xray/Dockerfile
+    image: xray-vpn:latest
+    container_name: xray-vpn
+    profiles: ['dev', 'xray']
+    ports:
+      - "443:443"
+      # - "80:80"
+    volumes:
+      - ./config/xray/config.json:/usr/local/etc/xray/config.json
+      - ./logs/xray/access.log:/var/log/xray/access.log
+      - ./logs/xray/error.log:/var/log/xray/error.log
+    deploy:
+      restart_policy:
+        condition: any
+
+  tg-bot:
+    build:
+      context: .
+      dockerfile: containers/tg-bot/Dockerfile
+    image: tg-bot:latest
+    container_name: tg-bot
+    profiles: ['dev']
+    ports:
+      - "80:80"
+      # - "443:443"
+    env_file:
+      - ./containers/tg-bot/.env.local
+    volumes:
+      - ./logs/tg-bot/combined.log:/tg-bot/logs/combined.log
+      - ./logs/tg-bot/error.log:/tg-bot/logs/error.log
+      - ./logs/tg-bot/transaction.log:/tg-bot/logs/transaction.log
+#    depends_on:
+#      redis:
+#        condition: service_healthy
+      ## api-gateway: todo добавить healthcheck
+      ## todo добавить watch для dev разработки
