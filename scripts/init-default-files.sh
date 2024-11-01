@@ -12,6 +12,11 @@ echo '{
   "log": {
     "loglevel": "info"
   },
+  "api": {
+    "tag": "api",
+    "listen": "127.0.0.1:8080",
+    "services": ["HandlerService", "LoggerService", "StatsService", "RoutingService"]
+  },
   "routing": {
     "rules": [],
     "domainStrategy": "AsIs"
@@ -68,5 +73,16 @@ echo '{
       "protocol": "blackhole",
       "tag": "block"
     }
-  ]
+  ],
+  "stats": {},
+  "policy": {
+    "levels": {
+      "0": {
+        "statsInboundUplink": true,
+          "statsInboundDownlink": true,
+          "statsOutboundUplink": true,
+          "statsOutboundDownlink": true
+      }
+    }
+  }
 }' > ../config/xray/config.json

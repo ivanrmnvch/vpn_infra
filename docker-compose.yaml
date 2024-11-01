@@ -26,7 +26,8 @@ services:
     env_file:
       - ./containers/kafka/.env.local
     volumes:
-      - /var/lib/docker/volumes/kafka:/bitnami/kafka
+      - 'kafka_data:/bitnami/kafka'
+#      - /var/lib/docker/volumes/kafka:/bitnami/kafka
     ports:
       - '9092:9092'
       - '9093:9093'
@@ -50,45 +51,45 @@ services:
     ports:
       - '8083:8080'
 
-  redis:
-    image: redis:latest
-    container_name: redis
-    profiles: ['dev']
-    env_file:
-      - ./containers/redis/.env.local
-    ports:
-      - "6380:6379"
-    volumes:
-      - /var/lib/docker/volumes/redisdata:/data
-    deploy:
-      # todo оптимизировать
-      resources:
-        limits:
-          cpus: '0.50'
-          memory: 512M
-        reservations:
-          cpus: '0.25'
-          memory: 256M
-    command: >
-      sh -c '
-        mkdir -p /usr/local/etc/redis &&
-        echo "bind 0.0.0.0" > /usr/local/etc/redis/redis.conf &&
-        echo "requirepass $REDIS_PASSWORD" >> /usr/local/etc/redis/redis.conf &&
-        echo "appendonly yes" >> /usr/local/etc/redis/redis.conf &&
-        echo "appendfsync everysec" >> /usr/local/etc/redis/redis.conf &&
-        echo "protected-mode no" >> /usr/local/etc/redis/redis.conf &&
-        echo "user default on nopass ~* +@all" > /usr/local/etc/redis/users.acl &&
-        echo "user $REDIS_USER on >$REDIS_USER_PASSWORD ~* +@all" >> /usr/local/etc/redis/users.acl &&
-        redis-server /usr/local/etc/redis/redis.conf --aclfile /usr/local/etc/redis/users.acl
-      '
-    healthcheck:
-      test: ["CMD", "redis-cli", "-a", "$REDIS_PASSWORD", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-    restart: unless-stopped
-    tty: true
-    stdin_open: true
+#  redis:
+#    image: redis:latest
+#    container_name: redis
+#    profiles: ['dev']
+#    env_file:
+#      - ./containers/redis/.env.local
+#    ports:
+#      - "6380:6379"
+#    volumes:
+#      - /var/lib/docker/volumes/redisdata:/data
+#    deploy:
+#      # todo оптимизировать
+#      resources:
+#        limits:
+#          cpus: '0.50'
+#          memory: 512M
+#        reservations:
+#          cpus: '0.25'
+#          memory: 256M
+#    command: >
+#      sh -c '
+#        mkdir -p /usr/local/etc/redis &&
+#        echo "bind 0.0.0.0" > /usr/local/etc/redis/redis.conf &&
+#        echo "requirepass $REDIS_PASSWORD" >> /usr/local/etc/redis/redis.conf &&
+#        echo "appendonly yes" >> /usr/local/etc/redis/redis.conf &&
+#        echo "appendfsync everysec" >> /usr/local/etc/redis/redis.conf &&
+#        echo "protected-mode no" >> /usr/local/etc/redis/redis.conf &&
+#        echo "user default on nopass ~* +@all" > /usr/local/etc/redis/users.acl &&
+#        echo "user $REDIS_USER on >$REDIS_USER_PASSWORD ~* +@all" >> /usr/local/etc/redis/users.acl &&
+#        redis-server /usr/local/etc/redis/redis.conf --aclfile /usr/local/etc/redis/users.acl
+#      '
+#    healthcheck:
+#      test: ["CMD", "redis-cli", "-a", "$REDIS_PASSWORD", "ping"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 5
+#    restart: unless-stopped
+#    tty: true
+#    stdin_open: true
 
   api-gateway:
 # todo добавить healthcheck
@@ -128,14 +129,46 @@ services:
     profiles: ['dev', 'xray']
     ports:
       - "443:443"
+      - "0.0.0.0:8080:8080"
       # - "80:80"
     volumes:
       - ./config/xray/config.json:/usr/local/etc/xray/config.json
       - ./logs/xray/access.log:/var/log/xray/access.log
       - ./logs/xray/error.log:/var/log/xray/error.log
+    healthcheck:
+      test: /usr/local/bin/xray api statssys
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    expose:
+      - "8080"
     deploy:
       restart_policy:
         condition: any
+
+  xray-manager:
+    build:
+      context: .
+      dockerfile: ./containers/xray-manager/Dockerfile
+    image: xray-manager:latest
+    container_name: xray-manager
+    profiles: ['dev', 'xray']
+    depends_on:
+      xray-vpn:
+        condition: service_healthy
+#    env_file:
+#      - ./containers/xray-manager/env.local
+#    environment:
+#      - LOG_PATH = default
+    volumes:
+      - ${LOG_PATH}:/xray-manager/logs/xray-vpn.log
+    develop:
+      watch:
+        - path: ./repositories/xray-manager/package.json
+          action: rebuild
+        - path: ./repositories/xray-manager/src
+          target: /xray-manager/src
+          action: sync
 
   tg-bot:
     build:
@@ -158,3 +191,7 @@ services:
 #        condition: service_healthy
       ## api-gateway: todo добавить healthcheck
       ## todo добавить watch для dev разработки
+
+volumes:
+  kafka_data:
+    driver: local
