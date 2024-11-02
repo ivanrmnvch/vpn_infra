@@ -21,6 +21,9 @@ init-services:
 	cd repositories/tg-bot && make init
 	cd repositories/xray-manager && make init
 
+copy-env:
+	cd ./scripts && sh copy-env.sh
+
 dev:
 	$(DOCKER_COMPOSE) --profile dev watch
 
