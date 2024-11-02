@@ -19,7 +19,7 @@ git-clone-services: ## Клонирование репозиториев
 init-services:
 	cd repositories/api-gateway/src && npm i
 	cd repositories/tg-bot && make init
-	cd repositories/xray-manager/src && make init
+	cd repositories/xray-manager && make init
 
 dev:
 	$(DOCKER_COMPOSE) --profile dev watch
