@@ -1,5 +1,5 @@
 # services
-DOCKER_COMPOSE = docker-compose
+DOCKER_COMPOSE = docker compose
 
 # containers
 CONTAINER_XRAY_VPN = xray-vpn
@@ -19,7 +19,7 @@ git-clone-services: ## Клонирование репозиториев
 init-services:
 	cd repositories/api-gateway/src && npm i
 	cd repositories/tg-bot && make init
-	cd repositories/xray-manager/src && npm i
+	cd repositories/xray-manager/src && make init
 
 dev:
 	$(DOCKER_COMPOSE) --profile dev watch
