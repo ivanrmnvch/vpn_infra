@@ -39,9 +39,11 @@ run-xray-vpn:
 
 get-xray-vpn-log-path:
 	@$(eval LOG_PATH := $(shell docker inspect --format='{{.LogPath}}' $(CONTAINER_XRAY_VPN)))
-	# @echo "LOG_PATH is now: $(LOG_PATH)"
 
 run-xray-manager: get-xray-vpn-log-path
-	LOG_PATH=$(LOG_PATH) $(DOCKER_COMPOSE) up -d --build --force-recreate --remove-orphans --scale $(CONTAINER_XRAY_MANAGER)=1 $(CONTAINER_XRAY_MANAGER)
+	# LOG_PATH=$(LOG_PATH) $(DOCKER_COMPOSE) watch $(CONTAINER_XRAY_MANAGER)
+	LOG_PATH=$(LOG_PATH) $(DOCKER_COMPOSE) up --watch $(CONTAINER_XRAY_MANAGER)
+
+#--build --force-recreate --remove-orphans --scale $(CONTAINER_XRAY_MANAGER)=1
 
 xray: run-xray-vpn run-xray-manager

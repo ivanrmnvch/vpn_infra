@@ -133,8 +133,8 @@ services:
       # - "80:80"
     volumes:
       - ./config/xray/config.json:/usr/local/etc/xray/config.json
-      - ./logs/xray/access.log:/var/log/xray/access.log
-      - ./logs/xray/error.log:/var/log/xray/error.log
+      # - ./logs/xray/access.log:/var/log/xray/access.log
+      # - ./logs/xray/error.log:/var/log/xray/error.log
     healthcheck:
       test: /usr/local/bin/xray api statssys
       interval: 10s

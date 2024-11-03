@@ -8,4 +8,4 @@ RUN npm install
 
 COPY ../../repositories/xray-manager ./
 
-CMD ["sh", "-c", "cd src && node app.js"]
+CMD ["npm", "run", "start"]
