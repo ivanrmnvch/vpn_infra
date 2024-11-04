@@ -157,7 +157,7 @@ services:
       xray-vpn:
         condition: service_healthy
     env_file:
-      - ./containers/xray-manager/env.local
+      - ./containers/xray-manager/.env.local
 #    environment:
 #      - LOG_PATH = default
     volumes:
