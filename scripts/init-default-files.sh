@@ -10,7 +10,10 @@ echo "" > ../logs/tg-bot/transaction.log
 # default xray config
 echo '{
   "log": {
-    "loglevel": "info"
+    "loglevel": "debug",
+    "access": "/var/log/xray/access.log",
+    "error": "/var/log/xray/error.log",
+    "dnsLog": false
   },
   "api": {
     "tag": "api",
