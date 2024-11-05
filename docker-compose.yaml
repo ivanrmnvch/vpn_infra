@@ -122,8 +122,8 @@ services:
 
   xray-vpn:
     build:
-      context: .
-      dockerfile: ./containers/xray/Dockerfile
+      context: containers/xray
+      dockerfile: Dockerfile
     image: xray-vpn:latest
     container_name: xray-vpn
     profiles: ['dev', 'xray']
